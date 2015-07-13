@@ -40,11 +40,13 @@
 
 #ifdef TRINITY
 #include "Config.h"
+#include "GroupMgr.h"
 #include "ScriptedCreature.h"
 #include "SpellInfo.h"
 #include "WeatherMgr.h"
 #include "Battleground.h"
 #include "revision.h"
+#include "SpellHistory.h"
 #else
 #include "Config/Config.h"
 #include "AggressorAI.h"

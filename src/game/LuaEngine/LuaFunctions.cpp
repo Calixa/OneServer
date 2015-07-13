@@ -149,7 +149,7 @@ ElunaRegister<Object> ObjectMethods[] =
     // Getters
     { "GetEntry", &LuaObject::GetEntry },                     // :GetEntry() - Returns the object's entryId
     { "GetGUID", &LuaObject::GetGUID },                       // :GetGUID() - Returns uint64 guid as hex string
-    { "GetGUIDLow", &LuaObject::GetGUIDLow },                 // :GetGUIDLow() - Returns uint32 guid (low guid) that is used in database.
+    { "GetGUIDLow", &LuaObject::GetGUIDLow },                 // :GetGUIDLow() - Returns uint32 guid (low guid) that is used to differentiate objects of same type.
     { "GetInt32Value", &LuaObject::GetInt32Value },           // :GetInt32Value(index) - returns an int value from object fields
     { "GetUInt32Value", &LuaObject::GetUInt32Value },         // :GetUInt32Value(index) - returns an uint value from object fields
     { "GetFloatValue", &LuaObject::GetFloatValue },           // :GetFloatValue(index) - returns a float value from object fields
@@ -483,7 +483,6 @@ ElunaRegister<Player> PlayerMethods[] =
     { "GetSkillPermBonusValue", &LuaPlayer::GetSkillPermBonusValue },             // :GetSkillPermBonusValue(skill) - Returns current permanent bonus
     { "GetSkillTempBonusValue", &LuaPlayer::GetSkillTempBonusValue },             // :GetSkillTempBonusValue(skill) - Returns current temp bonus
     { "GetReputationRank", &LuaPlayer::GetReputationRank },                       // :GetReputationRank(faction) - Returns the reputation rank with given faction
-    { "GetSpellCooldowns", &LuaPlayer::GetSpellCooldowns },                       // :GetSpellCooldowns() - Gets a table where spellIDs are the keys and values are cooldowns
     { "GetDrunkValue", &LuaPlayer::GetDrunkValue },                               // :GetDrunkValue() - Returns the current drunkness value
     { "GetBattlegroundId", &LuaPlayer::GetBattlegroundId },                       // :GetBattlegroundId() - Returns the player's current battleground ID
     { "GetBattlegroundTypeId", &LuaPlayer::GetBattlegroundTypeId },               // :GetBattlegroundTypeId() - Returns the player's current battleground type ID
@@ -737,6 +736,8 @@ ElunaRegister<Player> PlayerMethods[] =
     { "Mute", &LuaPlayer::Mute },                                                         // :Mute(time[, reason]) - Mutes the player for given time in seconds.
     { "SummonPlayer", &LuaPlayer::SummonPlayer },                                         // :SummonPlayer(player, map, x, y, z, zoneId[, delay]) - Sends a popup to the player asking if he wants to be summoned if yes, teleported to coords. ZoneID defines the location name shown in the popup Delay is the time until the popup closes automatically.
     { "SaveToDB", &LuaPlayer::SaveToDB },                                                 // :SaveToDB() - Saves to database
+    { "GroupInvite", &LuaPlayer::GroupInvite },
+    { "GroupCreate", &LuaPlayer::GroupCreate },
 #ifdef CLASSIC
     { "UpdateHonor", &LuaPlayer::UpdateHonor },                                             // :UpdateHonor() - Updates Player Honor
     { "ResetHonor", &LuaPlayer::ResetHonor },                                               // :ResetHonor() - Resets Player Honor
@@ -774,6 +775,7 @@ ElunaRegister<Creature> CreatureMethods[] =
 #ifndef CATA
     { "GetShieldBlockValue", &LuaCreature::GetShieldBlockValue },
 #endif
+    { "GetDBTableGUIDLow", &LuaCreature::GetDBTableGUIDLow },
 
     // Setters
     { "SetHover", &LuaCreature::SetHover },
@@ -858,6 +860,7 @@ ElunaRegister<GameObject> GameObjectMethods[] =
     { "GetLootState", &LuaGameObject::GetLootState },
     { "GetLootRecipient", &LuaGameObject::GetLootRecipient },
     { "GetLootRecipientGroup", &LuaGameObject::GetLootRecipientGroup },
+    { "GetDBTableGUIDLow", &LuaGameObject::GetDBTableGUIDLow },
 
     // Setters
     { "SetGoState", &LuaGameObject::SetGoState },
@@ -1032,7 +1035,6 @@ ElunaRegister<Group> GroupMethods[] =
     // Getters
     { "GetMembers", &LuaGroup::GetMembers },
     { "GetLeaderGUID", &LuaGroup::GetLeaderGUID },
-    { "GetLeader", &LuaGroup::GetLeader },
     { "GetGUID", &LuaGroup::GetGUID },
     { "GetMemberGroup", &LuaGroup::GetMemberGroup },
     { "GetMemberGUID", &LuaGroup::GetMemberGUID },
@@ -1045,7 +1047,7 @@ ElunaRegister<Group> GroupMethods[] =
 
     // Boolean
     { "IsLeader", &LuaGroup::IsLeader },
-    { "AddInvite", &LuaGroup::AddInvite },
+    { "AddMember", &LuaGroup::AddMember },
     { "RemoveMember", &LuaGroup::RemoveMember },
     { "Disband", &LuaGroup::Disband },
     { "IsFull", &LuaGroup::IsFull },

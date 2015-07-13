@@ -10,7 +10,7 @@
 /***
  * Non-[Player] controlled [Unit]s (i.e. NPCs).
  *
- * Inherits all [Object], [WorldObject], and [Unit] methods.
+ * Inherits all methods from: [Object], [WorldObject], [Unit]
  */
 namespace LuaCreature
 {
@@ -279,7 +279,14 @@ namespace LuaCreature
     {
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 2);
 
+#ifdef TRINITY
+        if (const SpellInfo* info = sSpellMgr->GetSpellInfo(spell))
+            Eluna::Push(L, info->GetCategory() && creature->GetSpellHistory()->HasCooldown(spell));
+        else
+            Eluna::Push(L, false);
+#else
         Eluna::Push(L, creature->HasCategoryCooldown(spell));
+#endif
         return 1;
     }
 
@@ -328,7 +335,11 @@ namespace LuaCreature
     {
         uint32 spellId = Eluna::CHECKVAL<uint32>(L, 2);
 
+#ifdef TRINITY
+        Eluna::Push(L, creature->GetSpellHistory()->HasCooldown(spellId));
+#else
         Eluna::Push(L, creature->HasSpellCooldown(spellId));
+#endif
         return 1;
     }
 
@@ -565,7 +576,11 @@ namespace LuaCreature
     {
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 2);
 
+#ifdef TRINITY
+        Eluna::Push(L, creature->GetSpellHistory()->GetRemainingCooldown(spell));
+#else
         Eluna::Push(L, creature->GetCreatureSpellCooldownDelay(spell));
+#endif
         return 1;
     }
 
@@ -821,6 +836,22 @@ namespace LuaCreature
         return 1;
     }
 #endif
+
+    /**
+     * Returns the guid of the [Creature] that is used as the ID in the database
+     *
+     * @return uint32 dbguid
+     */
+    int GetDBTableGUIDLow(Eluna* /*E*/, lua_State* L, Creature* creature)
+    {
+#ifdef TRINITY
+        Eluna::Push(L, creature->GetDBTableGUIDLow());
+#else
+        // on mangos based this is same as lowguid
+        Eluna::Push(L, creature->GetGUIDLow());
+#endif
+        return 1;
+    }
 
     /* SETTERS */
 

@@ -7,6 +7,9 @@
 #ifndef GAMEOBJECTMETHODS_H
 #define GAMEOBJECTMETHODS_H
 
+/***
+ * Inherits all methods from: [Object], [WorldObject]
+ */
 namespace LuaGameObject
 {
     /**
@@ -142,6 +145,22 @@ namespace LuaGameObject
         Eluna::Push(L, go->GetLootRecipientGroup());
 #else
         Eluna::Push(L, go->GetGroupLootRecipient());
+#endif
+        return 1;
+    }
+
+    /**
+     * Returns the guid of the [GameObject] that is used as the ID in the database
+     *
+     * @return uint32 dbguid
+     */
+    int GetDBTableGUIDLow(Eluna* /*E*/, lua_State* L, GameObject* go)
+    {
+#ifdef TRINITY
+        Eluna::Push(L, go->GetDBTableGUIDLow());
+#else
+        // on mangos based this is same as lowguid
+        Eluna::Push(L, go->GetGUIDLow());
 #endif
         return 1;
     }

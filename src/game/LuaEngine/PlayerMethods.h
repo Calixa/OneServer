@@ -7,6 +7,9 @@
 #ifndef PLAYERMETHODS_H
 #define PLAYERMETHODS_H
 
+/***
+ * Inherits all methods from: [Object], [WorldObject], [Unit]
+ */
 namespace LuaPlayer
 {
     /* BOOLEAN */
@@ -199,7 +202,11 @@ namespace LuaPlayer
     {
         uint32 spellId = Eluna::CHECKVAL<uint32>(L, 2);
 
+#ifdef TRINITY
+        Eluna::Push(L, player->GetSpellHistory()->HasCooldown(spellId));
+#else
         Eluna::Push(L, player->HasSpellCooldown(spellId));
+#endif
         return 1;
     }
 
@@ -783,7 +790,11 @@ namespace LuaPlayer
     {
         uint32 spellId = Eluna::CHECKVAL<uint32>(L, 2);
 
+#ifdef TRINITY
+        Eluna::Push(L, player->GetSpellHistory()->GetRemainingCooldown(spellId));
+#else
         Eluna::Push(L, uint32(player->GetSpellCooldownDelay(spellId)));
+#endif
         return 1;
     }
 
@@ -935,24 +946,6 @@ namespace LuaPlayer
     int GetDrunkValue(Eluna* /*E*/, lua_State* L, Player* player)
     {
         Eluna::Push(L, player->GetDrunkValue());
-        return 1;
-    }
-
-    int GetSpellCooldowns(Eluna* /*E*/, lua_State* L, Player* player)
-    {
-        lua_newtable(L);
-        int tbl = lua_gettop(L);
-        uint32 i = 0;
-
-        for (SpellCooldowns::const_iterator it = player->GetSpellCooldownMap().begin(); it != player->GetSpellCooldownMap().end(); ++it)
-        {
-            ++i;
-            Eluna::Push(L, it->first);
-            Eluna::Push(L, uint32(it->second.end));
-            lua_settable(L, tbl);
-        }
-
-        lua_settop(L, tbl);
         return 1;
     }
 
@@ -2276,7 +2269,7 @@ namespace LuaPlayer
     /**
      * Unbinds the [Player] from his instances except the one he currently is in.
      */
-    int UnbindAllInstances(Eluna* /*E*/, lua_State* L, Player* player)
+    int UnbindAllInstances(Eluna* /*E*/, lua_State* /*L*/, Player* player)
     {
 #ifdef CLASSIC
         Player::BoundInstancesMap& binds = player->GetBoundInstances();
@@ -3093,12 +3086,11 @@ namespace LuaPlayer
     /**
      * Removes the given amount of the specified [Item] from the player.
      *
-     * @proto item = (item, itemCount)
-     * @proto item = (entry, itemCount)
+     * @proto (item, itemCount)
+     * @proto (entry, itemCount)
      * @param [Item] item : item to remove
      * @param uint32 entry : entry of the item to remove
      * @param uint32 itemCount = 1 : amount of the item to add
-     * @return [Item] item : the item that was added or nil
      */
     int RemoveItem(Eluna* /*E*/, lua_State* L, Player* player)
     {
@@ -3133,7 +3125,11 @@ namespace LuaPlayer
     {
         uint32 spellId = Eluna::CHECKVAL<uint32>(L, 2);
         bool update = Eluna::CHECKVAL<bool>(L, 3, true);
+#ifdef TRINITY
+        player->GetSpellHistory()->ResetCooldown(spellId, update);
+#else
         player->RemoveSpellCooldown(spellId, update);
+#endif
         return 0;
     }
 
@@ -3141,7 +3137,16 @@ namespace LuaPlayer
     {
         uint32 category = Eluna::CHECKVAL<uint32>(L, 2);
         bool update = Eluna::CHECKVAL<bool>(L, 3, true);
+
+#ifdef TRINITY
+        player->GetSpellHistory()->ResetCooldowns([category](SpellHistory::CooldownStorageType::iterator itr) -> bool
+        {
+            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(itr->first);
+            return spellInfo && spellInfo->GetCategory() == category;
+        }, update);
+#else
         player->RemoveSpellCategoryCooldown(category, update);
+#endif
         return 0;
     }
 
@@ -3150,7 +3155,11 @@ namespace LuaPlayer
      */
     int ResetAllCooldowns(Eluna* /*E*/, lua_State* /*L*/, Player* player)
     {
+#ifdef TRINITY
+        player->GetSpellHistory()->ResetAllCooldowns();
+#else
         player->RemoveAllSpellCooldown();
+#endif
         return 0;
     }
 
@@ -3158,8 +3167,12 @@ namespace LuaPlayer
     {
         uint32 spellId = Eluna::CHECKVAL<uint32>(L, 2);
         Unit* target = Eluna::CHECKOBJ<Unit>(L, 3);
-
+        
+#ifdef TRINITY
+        target->GetSpellHistory()->ResetCooldown(spellId, true);
+#else
         player->SendClearCooldown(spellId, target);
+#endif
         return 0;
     }
     /**
@@ -3496,6 +3509,114 @@ namespace LuaPlayer
         Player* looter = Eluna::CHECKOBJ<Player>(L, 2);
         player->RemovedInsignia(looter);
         return 0;
+    }
+
+    /**
+     * Makes the [Player] invite another player to a group.
+     *
+     * @param [Player] invited : player to invite to group
+     * @return bool success : true if the player was invited to a group
+     */
+    int GroupInvite(Eluna* /*E*/, lua_State* L, Player* player)
+    {
+        Player* invited = Eluna::CHECKOBJ<Player>(L, 2);
+
+        if (invited->GetGroup() || invited->GetGroupInvite())
+        {
+            Eluna::Push(L, false);
+            return 1;
+        }
+
+        // Get correct existing group if any
+        Group* group = player->GetGroup();
+        if (group && group->isBGGroup())
+            group = player->GetOriginalGroup();
+
+        bool success = false;
+
+        // Try invite if group found
+        if (group)
+            success = !group->IsFull() && group->AddInvite(invited);
+        else
+        {
+            // Create new group if one not found
+            group = new Group;
+            success = group->AddLeaderInvite(player) && group->AddInvite(invited);
+            if (!success)
+                delete group;
+        }
+
+        if (success)
+        {
+#if defined(CLASSIC) || defined(TBC)
+            WorldPacket data(SMSG_GROUP_INVITE, 10);                // guess size
+            data << player->GetName();
+            invited->GetSession()->SendPacket(&data);
+#else
+            WorldPacket data(SMSG_GROUP_INVITE, 10);                // guess size
+            data << uint8(1);                                       // invited/already in group flag
+            data << player->GetName();                              // max len 48
+            data << uint32(0);                                      // unk
+            data << uint8(0);                                       // count
+            data << uint32(0);                                      // unk
+            invited->GetSession()->SendPacket(&data);
+#endif
+        }
+
+        Eluna::Push(L, success);
+        return 1;
+    }
+
+    /**
+     * Creates a new [Group] with the creator [Player] as leader.
+     *
+     * @param [Player] invited : player to add to group
+     * @return [Group] createdGroup : the created group or nil
+     */
+    int GroupCreate(Eluna* /*E*/, lua_State* L, Player* player)
+    {
+        Player* invited = Eluna::CHECKOBJ<Player>(L, 2);
+
+        if (player->GetGroup() || invited->GetGroup())
+            return 0;
+
+        if (Group* invitedgroup = player->GetGroupInvite())
+            player->UninviteFromGroup();
+        if (Group* invitedgroup = invited->GetGroupInvite())
+            invited->UninviteFromGroup();
+
+        // Try create new group
+        Group* group = new Group;
+        if (!group->AddLeaderInvite(player))
+        {
+            delete group;
+            return 0;
+        }
+
+        // Forming a new group, create it
+        if (!group->IsCreated())
+        {
+            group->RemoveInvite(player);
+#ifdef TRINITY
+            group->Create(player);
+            sGroupMgr->AddGroup(group);
+#else
+            if (!group->Create(group->GetLeaderGuid(), group->GetLeaderName()))
+                return 0;
+            sObjectMgr.AddGroup(group);
+#endif
+        }
+
+#ifdef TRINITY
+        if (!group->AddMember(invited))
+            return 0;
+        group->BroadcastGroupUpdate();
+#else
+        if (!group->AddMember(invited->GetObjectGuid(), invited->GetName()))
+            return 0;
+#endif
+        Eluna::Push(L, group);
+        return 1;
     }
 
     /*int BindToInstance(Eluna* E, lua_State* L, Player* player)
