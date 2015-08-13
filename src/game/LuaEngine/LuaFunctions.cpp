@@ -54,6 +54,8 @@ ElunaGlobal::ElunaRegister GlobalMethods[] =
     { "RegisterItemGossipEvent", &LuaGlobalFunctions::RegisterItemGossipEvent },               // RegisterItemGossipEvent(entry, event, function)
     { "RegisterPlayerGossipEvent", &LuaGlobalFunctions::RegisterPlayerGossipEvent },           // RegisterPlayerGossipEvent(menu_id, event, function)
     { "RegisterBGEvent", &LuaGlobalFunctions::RegisterBGEvent },                               // RegisterBGEvent(event, function)
+    { "RegisterMapEvent", &LuaGlobalFunctions::RegisterMapEvent },
+    { "RegisterInstanceEvent", &LuaGlobalFunctions::RegisterInstanceEvent },
 
     { "ClearBattleGroundEvents", &LuaGlobalFunctions::ClearBattleGroundEvents },
     { "ClearCreatureEvents", &LuaGlobalFunctions::ClearCreatureEvents },
@@ -69,6 +71,8 @@ ElunaGlobal::ElunaRegister GlobalMethods[] =
     { "ClearPlayerEvents", &LuaGlobalFunctions::ClearPlayerEvents },
     { "ClearPlayerGossipEvents", &LuaGlobalFunctions::ClearPlayerGossipEvents },
     { "ClearServerEvents", &LuaGlobalFunctions::ClearServerEvents },
+    { "ClearMapEvents", &LuaGlobalFunctions::ClearMapEvents },
+    { "ClearInstanceEvents", &LuaGlobalFunctions::ClearInstanceEvents },
 
     // Getters
     { "GetLuaEngine", &LuaGlobalFunctions::GetLuaEngine },
@@ -279,9 +283,7 @@ ElunaRegister<Unit> UnitMethods[] =
     { "GetVehicleKit", &LuaUnit::GetVehicleKit },                         // :GetVehicleKit() - Gets unit's Vehicle kit if the unit is a vehicle
     // {"GetVehicle", &LuaUnit::GetVehicle},                            // :GetVehicle() - Gets the Vehicle kit of the vehicle the unit is on
 #endif
-#ifdef MANGOS
     { "GetMovementType", &LuaUnit::GetMovementType },
-#endif
 
     // Setters
     { "SetFaction", &LuaUnit::SetFaction },                   // :SetFaction(factionId) - Sets the unit's faction
@@ -364,6 +366,7 @@ ElunaRegister<Unit> UnitMethods[] =
     { "IsRooted", &LuaUnit::IsRooted },                               // :IsRooted()
     { "IsFullHealth", &LuaUnit::IsFullHealth },                       // :IsFullHealth() - Returns if the unit is full health
     { "HasAura", &LuaUnit::HasAura },                                 // :HasAura(spellId) - Returns true if the unit has the aura from the spell
+    { "IsCasting", &LuaUnit::IsCasting },
     { "IsStandState", &LuaUnit::IsStandState },                       // :IsStandState() - Returns true if the unit is standing
 #ifndef CLASSIC
     { "IsOnVehicle", &LuaUnit::IsOnVehicle },                         // :IsOnVehicle() - Checks if the unit is on a vehicle
@@ -865,6 +868,7 @@ ElunaRegister<GameObject> GameObjectMethods[] =
     // Setters
     { "SetGoState", &LuaGameObject::SetGoState },
     { "SetLootState", &LuaGameObject::SetLootState },
+    { "SetRespawnTime", &LuaGameObject::SetRespawnTime },
 
     // Boolean
     { "IsTransport", &LuaGameObject::IsTransport },
@@ -1192,6 +1196,7 @@ ElunaRegister<Map> MapMethods[] =
     { "GetName", &LuaMap::GetName },                          // :GetName() - Returns the map's name UNDOCUMENTED
     { "GetDifficulty", &LuaMap::GetDifficulty },              // :GetDifficulty() - Returns the map's difficulty UNDOCUMENTED
     { "GetInstanceId", &LuaMap::GetInstanceId },              // :GetInstanceId() - Returns the map's instance ID UNDOCUMENTED
+    { "GetInstanceData", &LuaMap::GetInstanceData },
     { "GetPlayerCount", &LuaMap::GetPlayerCount },            // :GetPlayerCount() - Returns the amount of players on map except GM's UNDOCUMENTED
     { "GetMapId", &LuaMap::GetMapId },                        // :GetMapId() - Returns the map's ID UNDOCUMENTED
     { "GetAreaId", &LuaMap::GetAreaId },                      // :GetAreaId(x, y, z) - Returns the map's area ID based on coords UNDOCUMENTED
@@ -1212,6 +1217,9 @@ ElunaRegister<Map> MapMethods[] =
     { "IsHeroic", &LuaMap::IsHeroic },                        // :IsHeroic() - Returns the true if the map is a heroic dungeon, else false UNDOCUMENTED
 #endif
     { "IsRaid", &LuaMap::IsRaid },                            // :IsRaid() - Returns the true if the map is a raid map, else false UNDOCUMENTED
+
+    // Other
+    { "SaveInstanceData", &LuaMap::SaveInstanceData },
 
     { NULL, NULL },
 };

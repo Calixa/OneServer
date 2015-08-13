@@ -539,7 +539,22 @@ namespace LuaUnit
         Eluna::Push(L, unit->HasAura(spell));
         return 1;
     }
-    
+
+    /**
+     * Returns true if the [Unit] is casting a spell
+     *
+     * @return bool isCasting
+     */
+    int IsCasting(Eluna* /*E*/, lua_State* L, Unit* unit)
+    {
+#ifndef TRINITY
+        Eluna::Push(L, unit->hasUnitState(UNIT_STATE_CASTING));
+#else
+        Eluna::Push(L, unit->HasUnitState(UNIT_STATE_CASTING));
+#endif
+        return 1;
+    }
+
     /**
      * Returns true if the [Unit] has the given unit state.
      *
@@ -1274,7 +1289,6 @@ namespace LuaUnit
         return 1;
     }
 
-#ifdef MANGOS
     /**
      * Returns the current movement type for this [Unit].
      *
@@ -1285,6 +1299,7 @@ namespace LuaUnit
      *     RANDOM_MOTION_TYPE              = 1,
      *     WAYPOINT_MOTION_TYPE            = 2,
      *     MAX_DB_MOTION_TYPE              = 3,
+     *     ANIMAL_RANDOM_MOTION_TYPE       = 3, // TC
      * 
      *     CONFUSED_MOTION_TYPE            = 4,
      *     CHASE_MOTION_TYPE               = 5,
@@ -1297,7 +1312,10 @@ namespace LuaUnit
      *     ASSISTANCE_DISTRACT_MOTION_TYPE = 12,          
      *     TIMED_FLEEING_MOTION_TYPE       = 13,
      *     FOLLOW_MOTION_TYPE              = 14,
-     *     EFFECT_MOTION_TYPE              = 15,
+     *     EFFECT_MOTION_TYPE              = 15, // mangos
+     *     ROTATE_MOTION_TYPE              = 15, // TC
+     *     EFFECT_MOTION_TYPE              = 16, // TC
+     *     NULL_MOTION_TYPE                = 17, // TC
      * };
      * </pre>
      *
@@ -1308,7 +1326,6 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetMotionMaster()->GetCurrentMovementGeneratorType());
         return 1;
     }
-#endif
 
     /* SETTERS */
 
@@ -2070,7 +2087,7 @@ namespace LuaUnit
 #endif
         return 0;
     }
-    
+
     /**
      * Unmorphs the [Unit] setting it's display ID back to the native display ID.
      */
@@ -2079,17 +2096,17 @@ namespace LuaUnit
         unit->DeMorph();
         return 0;
     }
-    
+
     /**
      * Makes the [Unit] cast the spell on the target.
      *
-     * @param [Unit] target : can be self or another unit
+     * @param [Unit] target = nil : can be self or another unit
      * @param uint32 spell : entry of a spell
      * @param bool triggered = false : if true the spell is instant and has no cost
      */
     int CastSpell(Eluna* /*E*/, lua_State* L, Unit* unit)
     {
-        Unit* target = Eluna::CHECKOBJ<Unit>(L, 2);
+        Unit* target = Eluna::CHECKOBJ<Unit>(L, 2, NULL);
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 3);
         bool triggered = Eluna::CHECKVAL<bool>(L, 4, false);
         SpellEntry const* spellEntry = sSpellStore.LookupEntry(spell);
@@ -2104,7 +2121,7 @@ namespace LuaUnit
      * Casts the [Spell] at target [Unit] with custom basepoints or casters.
      * See also [Unit:CastSpell].
      *
-     * @param [Unit] target
+     * @param [Unit] target = nil
      * @param uint32 spell
      * @param bool triggered = false
      * @param int32 bp0 = nil : custom basepoints for [Spell] effect 1. If nil, no change is made
@@ -2115,7 +2132,7 @@ namespace LuaUnit
      */
     int CastCustomSpell(Eluna* /*E*/, lua_State* L, Unit* unit)
     {
-        Unit* target = Eluna::CHECKOBJ<Unit>(L, 2);
+        Unit* target = Eluna::CHECKOBJ<Unit>(L, 2, NULL);
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 3);
         bool triggered = Eluna::CHECKVAL<bool>(L, 4, false);
         bool has_bp0 = !lua_isnoneornil(L, 5);
@@ -2491,12 +2508,12 @@ namespace LuaUnit
     {
         Unit* victim = Eluna::CHECKOBJ<Unit>(L, 2);
         float threat = Eluna::CHECKVAL<float>(L, 3, true);
-        uint32 schoolMask = Eluna::CHECKVAL<uint32>(L, 3, 0);
-        uint32 spell = Eluna::CHECKVAL<uint32>(L, 3, 0);
+        uint32 schoolMask = Eluna::CHECKVAL<uint32>(L, 4, 0);
+        uint32 spell = Eluna::CHECKVAL<uint32>(L, 5, 0);
 
         if (schoolMask > SPELL_SCHOOL_MASK_ALL)
         {
-            return luaL_argerror(L, 3, "valid SpellSchoolMask expected");
+            return luaL_argerror(L, 4, "valid SpellSchoolMask expected");
         }
 
 #ifdef TRINITY
